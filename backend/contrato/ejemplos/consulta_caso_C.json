@@ -1,0 +1,277 @@
+{
+  "version_contrato": "2.1.0",
+  "id_consulta": "c_20261115120000_cultiv",
+  "nombre": "EJEMPLO SINTÉTICO - zona sin manglar",
+  "estado": "completada",
+  "progreso": {
+    "porcentaje": 100,
+    "etapa": "Listo"
+  },
+  "origen": "pipeline",
+  "creada_en": "2026-11-15T12:00:00+00:00",
+  "actualizada_en": "2026-11-15T12:09:41+00:00",
+  "parametros": {
+    "bbox": [
+      -96.0897,
+      19.0554,
+      -96.0787,
+      19.0654
+    ],
+    "poligono": null,
+    "fecha_inicio": "2005-01",
+    "fecha_fin": "2024-12",
+    "nombre": "Marina Punta Tiburón"
+  },
+  "ejecucion": {
+    "bbox": [
+      -96.0897,
+      19.0554,
+      -96.0787,
+      19.0654
+    ],
+    "start_date": "2005-01-01",
+    "end_date": "2024-12-31",
+    "area_ha": 128.21
+  },
+  "advertencias": [],
+  "resultado": {
+    "version_pipeline": "2.2.0",
+    "referencias": {
+      "baloloy2020": "Baloloy et al. (2020) ISPRS J. Photogramm. 166:95-117 — MVI=|NIR-G|/|SWIR1-G|, umbral mínimo óptimo 4.6 en Landsat 8, máximo 20.",
+      "neri2021": "Neri, Baloloy & Blanco (2021) ISPRS Arch. XLVI-4/W6 — el rango del MVI varía por sitio/clima/marea; Otsu no separa bien MVI.",
+      "gmw41": "Global Mangrove Watch v4.1 (2026), JAXA/Aberystwyth — extensión anual 1985-2025, 30 m, F1 global 0.92-0.93. ©Global Mangrove Watch, CC BY 4.0.",
+      "goldberg2020": "Goldberg et al. (2020) Global Change Biology 26:5844 — anomalía de NDVI de -0.2 respecto a la referencia como pérdida permanente (basado en Lagomasino et al. 2019).",
+      "yang2024": "Yang et al. (2024) Remote Sens. Environ. 315:114461 (USGS) — perturbado con rebote dentro de una temporada vs. en recuperación vs. en declive.",
+      "fao_fra": "FAO FRA — superficie mínima de bosque 0.5 ha (unidad mínima cartografiable).",
+      "xu2006": "Xu (2006) Int. J. Remote Sens. 27:3025 — MNDWI, umbral 0.",
+      "otsu1979": "Otsu (1979) IEEE Trans. SMC 9:62 — umbral por máxima varianza entre clases.",
+      "etccdi": "ETCCDI / Zhang et al. (2011) — percentiles sobre periodo base; R99p sobre días húmedos (>= 1 mm); percentil por día de calendario con ventana móvil.",
+      "wmo_normals": "OMM — periodo normal climatológico estándar 1991-2020.",
+      "davison_smith1990": "Davison & Smith (1990) JRSS-B 52:393 / Coles (2001) — runs declustering; cúmulo termina tras 3 días consecutivos bajo el umbral.",
+      "mckee1993": "McKee, Doesken & Kleist (1993) — SPI; sequía inicia con SPI<0 y alcanza <=-1.0; categorías -1.0/-1.5/-2.0 (WMO-No. 1090, 2012).",
+      "perkins2013": "Perkins & Alexander (2013) J. Climate 26:4500 — ola de calor: >=3 días consecutivos con Tmax > P90 de calendario (ventana de 15 días).",
+      "magana2003": "Magaña et al. (2003); Pérez et al. (2014) Front. Earth Sci. 2:19 — Nortes: 20-25 surgencias frías en el Golfo de México de octubre a marzo.",
+      "power_merra2": "NASA POWER — MERRA-2 1/2° x 5/8°, horario agregado a diario; WS10M_MAX tiende a subestimarse en América (umbrales relativos, no absolutos).",
+      "usgs_st": "USGS Landsat C2 ST: ST = DN*0.00341802 + 149.0 K; ST_QA = incertidumbre (0.01 K).",
+      "killick2012": "Killick, Fearnhead & Eckley (2012) JASA 107:1590 — PELT; penalización BIC lambda = 2 sigma^2 log n con sigma estimada por MAD de diferencias.",
+      "mann_kendall_sen": "Mann (1945), Kendall (1975), Sen (1968) — tendencia sobre la serie mensual desestacionalizada (pendiente por año).",
+      "rousseeuw_croux1993": "Rousseeuw & Croux (1993) JASA 88:1273 — 1.4826*MAD como desviación robusta.",
+      "usgs_c2_qa": "USGS Landsat Collection 2 Quality Assessment Bands — QA_PIXEL bit 3 solo marca nube de ALTA confianza; bits 8-9 = confianza de nube (00 sin nivel, 01 baja, 10 media, 11 alta).",
+      "zhu_woodcock2014": "Zhu & Woodcock (2014) Remote Sens. Environ. 144:152-171 — CCDC; filtro multitemporal (Tmask) para nubes que la máscara de una sola escena omite.",
+      "roy2016_c2": "Roy et al. (2016) Remote Sens. Environ. 185:57-70 — armonización ETM+->OLI NO aplicada aún; el sesgo entre sensores se mide con scripts/sesgo_sensores.py antes de decidir."
+    },
+    "extension_gmw_anual": [
+      {
+        "anio": 1985,
+        "ha": 0.0
+      },
+      {
+        "anio": 1986,
+        "ha": 0.0
+      },
+      {
+        "anio": 1987,
+        "ha": 0.0
+      },
+      {
+        "anio": 1988,
+        "ha": 0.0
+      },
+      {
+        "anio": 1989,
+        "ha": 0.0
+      },
+      {
+        "anio": 1990,
+        "ha": 0.0
+      },
+      {
+        "anio": 1991,
+        "ha": 0.0
+      },
+      {
+        "anio": 1992,
+        "ha": 0.0
+      },
+      {
+        "anio": 1993,
+        "ha": 0.0
+      },
+      {
+        "anio": 1994,
+        "ha": 0.0
+      },
+      {
+        "anio": 1995,
+        "ha": 0.0
+      },
+      {
+        "anio": 1996,
+        "ha": 0.0
+      },
+      {
+        "anio": 1997,
+        "ha": 0.0
+      },
+      {
+        "anio": 1998,
+        "ha": 0.0
+      },
+      {
+        "anio": 1999,
+        "ha": 0.0
+      },
+      {
+        "anio": 2000,
+        "ha": 0.0
+      },
+      {
+        "anio": 2001,
+        "ha": 0.0
+      },
+      {
+        "anio": 2002,
+        "ha": 0.0
+      },
+      {
+        "anio": 2003,
+        "ha": 0.0
+      },
+      {
+        "anio": 2004,
+        "ha": 0.0
+      },
+      {
+        "anio": 2005,
+        "ha": 0.0
+      },
+      {
+        "anio": 2006,
+        "ha": 0.0
+      },
+      {
+        "anio": 2007,
+        "ha": 0.0
+      },
+      {
+        "anio": 2008,
+        "ha": 0.0
+      },
+      {
+        "anio": 2009,
+        "ha": 0.0
+      },
+      {
+        "anio": 2010,
+        "ha": 0.0
+      },
+      {
+        "anio": 2011,
+        "ha": 0.0
+      },
+      {
+        "anio": 2012,
+        "ha": 0.0
+      },
+      {
+        "anio": 2013,
+        "ha": 0.0
+      },
+      {
+        "anio": 2014,
+        "ha": 0.0
+      },
+      {
+        "anio": 2015,
+        "ha": 0.0
+      },
+      {
+        "anio": 2016,
+        "ha": 0.0
+      },
+      {
+        "anio": 2017,
+        "ha": 0.0
+      },
+      {
+        "anio": 2018,
+        "ha": 0.0
+      },
+      {
+        "anio": 2019,
+        "ha": 0.0
+      },
+      {
+        "anio": 2020,
+        "ha": 0.0
+      },
+      {
+        "anio": 2021,
+        "ha": 0.0
+      },
+      {
+        "anio": 2022,
+        "ha": 0.0
+      },
+      {
+        "anio": 2023,
+        "ha": 0.0
+      },
+      {
+        "anio": 2024,
+        "ha": 0.0
+      },
+      {
+        "anio": 2025,
+        "ha": 0.0
+      }
+    ],
+    "ingesta_climatica": {
+      "source": "NASA POWER Daily API (community=AG)",
+      "centroid": [
+        -96.087,
+        19.053
+      ],
+      "total_days": 7305,
+      "null_cells": 0,
+      "historico_desde": "1981-01-01",
+      "dias_historicos": 16071
+    },
+    "ingesta_satelital": {
+      "stac_candidates": 341,
+      "valid_scenes_retained": 341,
+      "discarded_by_cloud_or_slc": 0,
+      "failed_remote_assets": 0,
+      "grid_shape": [
+        24,
+        23
+      ],
+      "epsg": 32614,
+      "max_stac_cloud_cover": 60.0,
+      "plataformas": [
+        "landsat-5",
+        "landsat-8"
+      ],
+      "descartadas_por_contaminacion_temporal": 0,
+      "historia_landsat": [
+        "1984-03-01",
+        "2026-11-14"
+      ],
+      "escenas_en_rango": 341
+    },
+    "status": "REJECTED_CONTROLLED",
+    "caso": "CASO_C",
+    "motivo_codigo": "SIN_MANGLAR",
+    "motivo_rechazo": "El polígono no contiene manglar: Global Mangrove Watch no registra manglar en la zona y la firma espectral (MVI >= 4.6, NDVI >= 0.3) cubre 0.00 ha, menos que la unidad mínima de 0.5 ha.",
+    "metricas_admisibilidad": {
+      "terrestrial_fraction": 0.9091,
+      "terrestrial_mvi_p50": 1.5929,
+      "terrestrial_ndvi_p50": 0.7078,
+      "manglar_gmw_ha": 0.0,
+      "firma_espectral_ha": 0.0
+    },
+    "fuente_mascara": "GMW",
+    "advertencias": []
+  },
+  "error": null
+}

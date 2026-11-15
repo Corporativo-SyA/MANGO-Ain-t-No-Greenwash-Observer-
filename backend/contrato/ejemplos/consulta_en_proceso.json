@@ -1,0 +1,39 @@
+{
+  "version_contrato": "2.1.0",
+  "id_consulta": "c_20261115120000_proces",
+  "nombre": "Marina Punta Tiburón",
+  "estado": "en_proceso",
+  "progreso": {
+    "porcentaje": 47,
+    "etapa": "Procesando escenas Landsat 104/248 (61 limpias)"
+  },
+  "origen": "pipeline",
+  "creada_en": "2026-11-15T12:00:00+00:00",
+  "actualizada_en": "2026-11-15T12:04:10+00:00",
+  "parametros": {
+    "bbox": [
+      -96.0897,
+      19.0554,
+      -96.0787,
+      19.0654
+    ],
+    "poligono": null,
+    "fecha_inicio": "2005-01",
+    "fecha_fin": "2024-12",
+    "nombre": "Marina Punta Tiburón"
+  },
+  "ejecucion": {
+    "bbox": [
+      -96.0897,
+      19.0554,
+      -96.0787,
+      19.0654
+    ],
+    "start_date": "2005-01-01",
+    "end_date": "2024-12-31",
+    "area_ha": 128.21
+  },
+  "advertencias": [],
+  "resultado": null,
+  "error": null
+}

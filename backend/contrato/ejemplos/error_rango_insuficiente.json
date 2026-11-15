@@ -1,0 +1,12 @@
+{
+  "error": {
+    "codigo": "RANGO_INSUFICIENTE",
+    "mensaje": "El rango es de 2 meses; esta instalación pide al menos 3 (MESES_MINIMOS en backend/.env).",
+    "detalles": [
+      {
+        "meses": 2,
+        "minimo": 3
+      }
+    ]
+  }
+}

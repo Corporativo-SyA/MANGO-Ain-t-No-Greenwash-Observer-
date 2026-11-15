@@ -1,0 +1,12 @@
+{
+  "error": {
+    "codigo": "AREA_EXCEDIDA",
+    "mensaje": "El área es de 5,820.3 km² y el máximo es 25 km². Dibuja una zona más pequeña.",
+    "detalles": [
+      {
+        "area_km2": 5820.3,
+        "maximo_km2": 25.0
+      }
+    ]
+  }
+}

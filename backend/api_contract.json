@@ -1,0 +1,2064 @@
+{
+  "nombre": "Contrato de intercambio JSON - MVP Manglares (MANGO v2)",
+  "version": "2.1.0",
+  "reglas": [
+    "Todo intercambio es JSON (UTF-8, RFC 8259: sin NaN; los faltantes son null).",
+    "Entrada: 'bbox' [oeste, sur, este, norte] en EPSG:4326 (o 'poligono' GeoJSON: se usa su rectángulo).",
+    "Fechas de entrada AAAA-MM; mínimo configurable (MESES_MINIMOS, 1 por defecto); área máxima 25 km².",
+    "resultado.status: COMPLETED (caso A/B), REJECTED_CONTROLLED (caso C: NO hay manglar), INSUFFICIENT_DATA (faltan datos: NO afirmar que no hay manglar; mostrar 'sugerencia').",
+    "timeline_mensual[].terrestre == null: mes sin escena limpia. NO interpolar.",
+    "Caso B: dividir línea de tiempo y tablas con fecha_quiebre y regimen (CON_MANGLAR/TRANSICION/SIN_MANGLAR); priorizar grupos del Top-3 con compara_antes_y_despues_quiebre == true.",
+    "ejes = estado frente al manglar sano; respuesta_al_evento = efecto del evento frente a su propio régimen.",
+    "Errores: siempre {error:{codigo,mensaje,detalles}}; 'mensaje' se puede mostrar tal cual.",
+    "Atribución obligatoria si se usa GMW: ©Global Mangrove Watch (CC BY 4.0)."
+  ],
+  "endpoints": [
+    {
+      "metodo": "GET",
+      "ruta": "/api/salud",
+      "respuesta": "Salud"
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/api/contrato",
+      "respuesta": "este archivo"
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/api/consultas",
+      "cuerpo": "SolicitudConsulta",
+      "respuesta": "Consulta",
+      "codigos": {
+        "202": "creada (en_cola)",
+        "200": "reutilizada (ya existía)",
+        "422": "RespuestaError"
+      }
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/api/consultas",
+      "respuesta": "Historial"
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/api/consultas/{id_consulta}",
+      "respuesta": "Consulta",
+      "nota": "Consultar cada 1-2 s hasta estado 'completada' o 'error'. Una consulta fría tarda 6-16 min."
+    },
+    {
+      "metodo": "PATCH",
+      "ruta": "/api/consultas/{id_consulta}",
+      "cuerpo": "CambioNombre",
+      "respuesta": "Consulta"
+    },
+    {
+      "metodo": "DELETE",
+      "ruta": "/api/consultas/{id_consulta}",
+      "respuesta": "Eliminacion"
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/api/consultas/{id_consulta}/descargar",
+      "respuesta": "archivo .json"
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/api/pilotos",
+      "respuesta": "ListaPilotos"
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/api/pilotos/{id_piloto}",
+      "respuesta": "Consulta"
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/api/diagnostico/conectores",
+      "respuesta": "DiagnosticoConectores"
+    }
+  ],
+  "esquemas": {
+    "GeometriaGeoJSON": {
+      "additionalProperties": false,
+      "description": "Geometría GeoJSON EPSG:4326 [lon, lat]. MANGO analiza su rectángulo envolvente.",
+      "properties": {
+        "type": {
+          "enum": [
+            "Polygon",
+            "MultiPolygon"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "coordinates": {
+          "items": {},
+          "title": "Coordinates",
+          "type": "array"
+        }
+      },
+      "required": [
+        "type",
+        "coordinates"
+      ],
+      "title": "GeometriaGeoJSON",
+      "type": "object"
+    },
+    "SolicitudConsulta": {
+      "additionalProperties": false,
+      "description": "Cuerpo de POST /api/consultas. Enviar `bbox` (recomendado) o `poligono`.",
+      "properties": {
+        "bbox": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "number"
+              },
+              "maxItems": 4,
+              "minItems": 4,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "[oeste, sur, este, norte] en grados EPSG:4326",
+          "examples": [
+            [
+              -96.0897,
+              19.0554,
+              -96.0787,
+              19.0654
+            ]
+          ],
+          "title": "Bbox"
+        },
+        "poligono": {
+          "anyOf": [
+            {
+              "$ref": "#/esquemas/GeometriaGeoJSON"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Alternativa: se analiza su rectángulo envolvente"
+        },
+        "fecha_inicio": {
+          "description": "Mes inicial AAAA-MM",
+          "examples": [
+            "2005-01"
+          ],
+          "pattern": "^\\d{4}-(0[1-9]|1[0-2])$",
+          "title": "Fecha Inicio",
+          "type": "string"
+        },
+        "fecha_fin": {
+          "description": "Mes final AAAA-MM",
+          "examples": [
+            "2024-12"
+          ],
+          "pattern": "^\\d{4}-(0[1-9]|1[0-2])$",
+          "title": "Fecha Fin",
+          "type": "string"
+        },
+        "nombre": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Nombre"
+        }
+      },
+      "required": [
+        "fecha_inicio",
+        "fecha_fin"
+      ],
+      "title": "SolicitudConsulta",
+      "type": "object"
+    },
+    "CambioNombre": {
+      "additionalProperties": false,
+      "properties": {
+        "nombre": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Nombre",
+          "type": "string"
+        }
+      },
+      "required": [
+        "nombre"
+      ],
+      "title": "CambioNombre",
+      "type": "object"
+    },
+    "EjeSeveridad": {
+      "additionalProperties": false,
+      "properties": {
+        "severidad": {
+          "enum": [
+            "NORMAL",
+            "MODERADO",
+            "ALTO",
+            "CRITICO",
+            "NO_DISPONIBLE"
+          ],
+          "title": "Severidad",
+          "type": "string"
+        },
+        "descripcion": {
+          "title": "Descripcion",
+          "type": "string"
+        }
+      },
+      "required": [
+        "severidad",
+        "descripcion"
+      ],
+      "title": "EjeSeveridad",
+      "type": "object"
+    },
+    "RespuestaEvento": {
+      "additionalProperties": false,
+      "description": "Efecto del evento contra la climatología de SU régimen (aísla el evento de la pérdida).",
+      "properties": {
+        "referencia": {
+          "enum": [
+            "CON_MANGLAR",
+            "SIN_MANGLAR"
+          ],
+          "title": "Referencia",
+          "type": "string"
+        },
+        "ejes": {
+          "additionalProperties": {
+            "$ref": "#/esquemas/EjeSeveridad"
+          },
+          "propertyNames": {
+            "enum": [
+              "Cobertura y Hábitat",
+              "Suelo",
+              "Agua",
+              "Microclima"
+            ]
+          },
+          "title": "Ejes",
+          "type": "object"
+        }
+      },
+      "required": [
+        "referencia",
+        "ejes"
+      ],
+      "title": "RespuestaEvento",
+      "type": "object"
+    },
+    "Deltas": {
+      "additionalProperties": false,
+      "properties": {
+        "delta_ndvi": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Delta Ndvi"
+        },
+        "delta_ndmi": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Delta Ndmi"
+        },
+        "delta_mndwi": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Delta Mndwi"
+        },
+        "delta_lst_c": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Delta Lst C"
+        },
+        "delta_acoplamiento_termico_c": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Delta Acoplamiento Termico C"
+        }
+      },
+      "title": "Deltas",
+      "type": "object"
+    },
+    "AnomaliasZ": {
+      "additionalProperties": false,
+      "properties": {
+        "z_ndvi": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Z Ndvi"
+        },
+        "z_ndmi": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Z Ndmi"
+        },
+        "z_mndwi": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Z Mndwi"
+        },
+        "z_acoplamiento_termico": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Z Acoplamiento Termico"
+        }
+      },
+      "title": "AnomaliasZ",
+      "type": "object"
+    },
+    "ProbabilidadNatural": {
+      "additionalProperties": false,
+      "description": "Probabilidad de ver una anomalía así en condiciones normales de la zona (menor = más raro).",
+      "properties": {
+        "ndvi": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ndvi"
+        },
+        "ndmi": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ndmi"
+        },
+        "mndwi": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mndwi"
+        },
+        "lst_minus_t2m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lst Minus T2M"
+        }
+      },
+      "title": "ProbabilidadNatural",
+      "type": "object"
+    },
+    "Episodio": {
+      "additionalProperties": false,
+      "properties": {
+        "event_id": {
+          "title": "Event Id",
+          "type": "string"
+        },
+        "tipo": {
+          "enum": [
+            "LLUVIA_TORRENCIAL_CICLON",
+            "NORTE_SEVERO",
+            "VIENTO_SEVERO",
+            "SEQUIA_ESTACIONAL_SEVERA",
+            "OLA_CALOR_ALTA_RADIACION"
+          ],
+          "title": "Tipo",
+          "type": "string"
+        },
+        "fecha_inicio": {
+          "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$",
+          "title": "Fecha Inicio",
+          "type": "string"
+        },
+        "fecha_fin": {
+          "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$",
+          "title": "Fecha Fin",
+          "type": "string"
+        },
+        "fecha_pico": {
+          "pattern": "^\\d{4}-(0[1-9]|1[0-2])-\\d{2}$",
+          "title": "Fecha Pico",
+          "type": "string"
+        },
+        "magnitud_maxima": {
+          "title": "Magnitud Maxima",
+          "type": "number"
+        },
+        "unidad": {
+          "title": "Unidad",
+          "type": "string"
+        },
+        "umbral_local": {
+          "title": "Umbral Local",
+          "type": "number"
+        },
+        "regimen_evento": {
+          "enum": [
+            "CON_MANGLAR",
+            "SIN_MANGLAR"
+          ],
+          "title": "Regimen Evento",
+          "type": "string"
+        },
+        "ventana_busqueda": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "title": "Ventana Busqueda",
+          "type": "array"
+        },
+        "confundido_con": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Confundido Con",
+          "type": "array"
+        },
+        "estado_observacion": {
+          "enum": [
+            "OBSERVADO",
+            "SIN_OBSERVACION_POSTERIOR"
+          ],
+          "title": "Estado Observacion",
+          "type": "string"
+        },
+        "escenas_post_evento": {
+          "title": "Escenas Post Evento",
+          "type": "integer"
+        },
+        "radiacion_media_sobrevuelo_mj": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Radiacion Media Sobrevuelo Mj"
+        },
+        "deltas": {
+          "anyOf": [
+            {
+              "$ref": "#/esquemas/Deltas"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "anomalias_z": {
+          "anyOf": [
+            {
+              "$ref": "#/esquemas/AnomaliasZ"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "probabilidad_natural": {
+          "anyOf": [
+            {
+              "$ref": "#/esquemas/ProbabilidadNatural"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "diagnostico_global": {
+          "title": "Diagnostico Global",
+          "type": "string"
+        },
+        "ejes": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/esquemas/EjeSeveridad"
+              },
+              "propertyNames": {
+                "enum": [
+                  "Cobertura y Hábitat",
+                  "Suelo",
+                  "Agua",
+                  "Microclima"
+                ]
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Ejes"
+        },
+        "respuesta_al_evento": {
+          "anyOf": [
+            {
+              "$ref": "#/esquemas/RespuestaEvento"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "event_id",
+        "tipo",
+        "fecha_inicio",
+        "fecha_fin",
+        "fecha_pico",
+        "magnitud_maxima",
+        "unidad",
+        "umbral_local",
+        "regimen_evento",
+        "ventana_busqueda",
+        "confundido_con",
+        "estado_observacion",
+        "escenas_post_evento",
+        "deltas",
+        "anomalias_z",
+        "probabilidad_natural",
+        "diagnostico_global",
+        "ejes",
+        "respuesta_al_evento"
+      ],
+      "title": "Episodio",
+      "type": "object"
+    },
+    "GrupoRecurrencia": {
+      "additionalProperties": false,
+      "properties": {
+        "tipo_amenaza": {
+          "enum": [
+            "LLUVIA_TORRENCIAL_CICLON",
+            "NORTE_SEVERO",
+            "VIENTO_SEVERO",
+            "SEQUIA_ESTACIONAL_SEVERA",
+            "OLA_CALOR_ALTA_RADIACION"
+          ],
+          "title": "Tipo Amenaza",
+          "type": "string"
+        },
+        "total_episodios_observados": {
+          "title": "Total Episodios Observados",
+          "type": "integer"
+        },
+        "compara_antes_y_despues_quiebre": {
+          "title": "Compara Antes Y Despues Quiebre",
+          "type": "boolean"
+        },
+        "ocurrencias": {
+          "items": {
+            "$ref": "#/esquemas/Episodio"
+          },
+          "title": "Ocurrencias",
+          "type": "array"
+        }
+      },
+      "required": [
+        "tipo_amenaza",
+        "total_episodios_observados",
+        "compara_antes_y_despues_quiebre",
+        "ocurrencias"
+      ],
+      "title": "GrupoRecurrencia",
+      "type": "object"
+    },
+    "ClimaMes": {
+      "additionalProperties": false,
+      "properties": {
+        "precip_mm_mes": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Precip Mm Mes"
+        },
+        "viento_max_ms": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Viento Max Ms"
+        },
+        "viento_medio_ms": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Viento Medio Ms"
+        },
+        "temp_aire_max_c": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Temp Aire Max C"
+        },
+        "radiacion_media_mj": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Radiacion Media Mj"
+        }
+      },
+      "title": "ClimaMes",
+      "type": "object"
+    },
+    "TerrestreMes": {
+      "additionalProperties": false,
+      "properties": {
+        "escenas_validas": {
+          "title": "Escenas Validas",
+          "type": "integer"
+        },
+        "regimen": {
+          "enum": [
+            "CON_MANGLAR",
+            "TRANSICION",
+            "SIN_MANGLAR"
+          ],
+          "title": "Regimen",
+          "type": "string"
+        },
+        "ndvi": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ndvi"
+        },
+        "ndmi": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ndmi"
+        },
+        "mndwi": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mndwi"
+        },
+        "mvi": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mvi"
+        },
+        "lst_c": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lst C"
+        },
+        "fraccion_manglar_en_pie": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Extensión en pie: solo pérdida PERSISTENTE (12-18 meses) por píxel.",
+          "title": "Fraccion Manglar En Pie"
+        },
+        "ha_manglar_estimada": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ha Manglar Estimada"
+        },
+        "indice_condicion": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Condición del dosel: z robusto vs. el mes calendario sano; < 0 = estrés.",
+          "title": "Indice Condicion"
+        },
+        "extension_provisional": {
+          "default": false,
+          "description": "Sin 18 meses de seguimiento: la extensión aún puede cambiar.",
+          "title": "Extension Provisional",
+          "type": "boolean"
+        },
+        "confianza": {
+          "anyOf": [
+            {
+              "enum": [
+                "ALTA",
+                "MEDIA",
+                "BAJA"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "ALTA: >=2 escenas que coinciden (dif. <= tau); MEDIA: 1 escena; BAJA: discrepan.",
+          "title": "Confianza"
+        },
+        "escenas_descartadas": {
+          "default": 0,
+          "description": "Escenas del mes descartadas por el filtro multitemporal.",
+          "title": "Escenas Descartadas",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "escenas_validas",
+        "regimen"
+      ],
+      "title": "TerrestreMes",
+      "type": "object"
+    },
+    "PuntoTimeline": {
+      "additionalProperties": false,
+      "properties": {
+        "year_month": {
+          "pattern": "^\\d{4}-(0[1-9]|1[0-2])$",
+          "title": "Year Month",
+          "type": "string"
+        },
+        "clima": {
+          "$ref": "#/esquemas/ClimaMes"
+        },
+        "terrestre": {
+          "anyOf": [
+            {
+              "$ref": "#/esquemas/TerrestreMes"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "null = mes sin escena limpia: NO interpolar"
+        }
+      },
+      "required": [
+        "year_month",
+        "clima",
+        "terrestre"
+      ],
+      "title": "PuntoTimeline",
+      "type": "object"
+    },
+    "EventoAsociado": {
+      "additionalProperties": false,
+      "properties": {
+        "event_id": {
+          "title": "Event Id",
+          "type": "string"
+        },
+        "tipo": {
+          "enum": [
+            "LLUVIA_TORRENCIAL_CICLON",
+            "NORTE_SEVERO",
+            "VIENTO_SEVERO",
+            "SEQUIA_ESTACIONAL_SEVERA",
+            "OLA_CALOR_ALTA_RADIACION"
+          ],
+          "title": "Tipo",
+          "type": "string"
+        },
+        "fecha_inicio": {
+          "title": "Fecha Inicio",
+          "type": "string"
+        },
+        "fecha_fin": {
+          "title": "Fecha Fin",
+          "type": "string"
+        }
+      },
+      "required": [
+        "event_id",
+        "tipo",
+        "fecha_inicio",
+        "fecha_fin"
+      ],
+      "title": "EventoAsociado",
+      "type": "object"
+    },
+    "NaturalezaQuiebre": {
+      "additionalProperties": false,
+      "properties": {
+        "tipo": {
+          "enum": [
+            "CONVERSION_PERSISTENTE",
+            "PERTURBACION_CON_RECUPERACION",
+            "INDETERMINADO_SEGUIMIENTO_CORTO"
+          ],
+          "title": "Tipo",
+          "type": "string"
+        },
+        "destino_cobertura": {
+          "enum": [
+            "AGUA",
+            "SUELO_DESNUDO_O_CONSTRUIDO",
+            "OTRA_VEGETACION",
+            "INDETERMINADO"
+          ],
+          "title": "Destino Cobertura",
+          "type": "string"
+        },
+        "ha_perdidas_estimadas": {
+          "title": "Ha Perdidas Estimadas",
+          "type": "number"
+        },
+        "meses_de_seguimiento": {
+          "title": "Meses De Seguimiento",
+          "type": "number"
+        },
+        "evento_climatico_asociado": {
+          "anyOf": [
+            {
+              "$ref": "#/esquemas/EventoAsociado"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ultima_observacion_intacta": {
+          "title": "Ultima Observacion Intacta",
+          "type": "string"
+        },
+        "primera_observacion_con_perdida": {
+          "title": "Primera Observacion Con Perdida",
+          "type": "string"
+        },
+        "criterio_atribucion": {
+          "title": "Criterio Atribucion",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tipo",
+        "destino_cobertura",
+        "ha_perdidas_estimadas",
+        "meses_de_seguimiento",
+        "evento_climatico_asociado",
+        "ultima_observacion_intacta",
+        "primera_observacion_con_perdida",
+        "criterio_atribucion"
+      ],
+      "title": "NaturalezaQuiebre",
+      "type": "object"
+    },
+    "EstadisticosTendencia": {
+      "additionalProperties": false,
+      "properties": {
+        "mann_kendall_tau": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mann Kendall Tau"
+        },
+        "mann_kendall_p": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mann Kendall P"
+        },
+        "sen_slope_por_escena": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sen Slope Por Escena"
+        },
+        "mann_kendall_tau_mensual_desestacionalizado": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mann Kendall Tau Mensual Desestacionalizado"
+        },
+        "mann_kendall_p_mensual_desestacionalizado": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mann Kendall P Mensual Desestacionalizado"
+        },
+        "sen_slope_por_anio": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sen Slope Por Anio"
+        }
+      },
+      "title": "EstadisticosTendencia",
+      "type": "object"
+    },
+    "MascarasEspaciales": {
+      "additionalProperties": false,
+      "properties": {
+        "total_polygon_pixels": {
+          "title": "Total Polygon Pixels",
+          "type": "integer"
+        },
+        "permanent_water_pixels": {
+          "title": "Permanent Water Pixels",
+          "type": "integer"
+        },
+        "terrestrial_pixels": {
+          "title": "Terrestrial Pixels",
+          "type": "integer"
+        },
+        "mangrove_core_pixels": {
+          "title": "Mangrove Core Pixels",
+          "type": "integer"
+        },
+        "mangrove_core_share_of_land": {
+          "title": "Mangrove Core Share Of Land",
+          "type": "number"
+        },
+        "mangrove_core_ha": {
+          "title": "Mangrove Core Ha",
+          "type": "number"
+        },
+        "fuente_mascara": {
+          "enum": [
+            "GMW",
+            "ESPECTRAL",
+            "ESPECTRAL_LITERATURA"
+          ],
+          "title": "Fuente Mascara",
+          "type": "string"
+        }
+      },
+      "required": [
+        "total_polygon_pixels",
+        "permanent_water_pixels",
+        "terrestrial_pixels",
+        "mangrove_core_pixels",
+        "mangrove_core_share_of_land",
+        "mangrove_core_ha",
+        "fuente_mascara"
+      ],
+      "title": "MascarasEspaciales",
+      "type": "object"
+    },
+    "ExtensionAnio": {
+      "additionalProperties": false,
+      "properties": {
+        "anio": {
+          "title": "Anio",
+          "type": "integer"
+        },
+        "ha": {
+          "title": "Ha",
+          "type": "number"
+        }
+      },
+      "required": [
+        "anio",
+        "ha"
+      ],
+      "title": "ExtensionAnio",
+      "type": "object"
+    },
+    "ResumenEventos": {
+      "additionalProperties": false,
+      "properties": {
+        "total_detonantes_detectados": {
+          "title": "Total Detonantes Detectados",
+          "type": "integer"
+        },
+        "total_con_observacion_posterior": {
+          "title": "Total Con Observacion Posterior",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "total_detonantes_detectados",
+        "total_con_observacion_posterior"
+      ],
+      "title": "ResumenEventos",
+      "type": "object"
+    },
+    "ResultadoCompletado": {
+      "additionalProperties": false,
+      "description": "Caso A (manglar conservado) o B (quiebre estructural).",
+      "properties": {
+        "version_pipeline": {
+          "title": "Version Pipeline",
+          "type": "string"
+        },
+        "referencias": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Referencias",
+          "type": "object"
+        },
+        "extension_gmw_anual": {
+          "items": {
+            "$ref": "#/esquemas/ExtensionAnio"
+          },
+          "title": "Extension Gmw Anual",
+          "type": "array"
+        },
+        "ingesta_climatica": {
+          "additionalProperties": true,
+          "title": "Ingesta Climatica",
+          "type": "object"
+        },
+        "ingesta_satelital": {
+          "additionalProperties": true,
+          "title": "Ingesta Satelital",
+          "type": "object"
+        },
+        "status": {
+          "const": "COMPLETED",
+          "title": "Status",
+          "type": "string"
+        },
+        "caso": {
+          "enum": [
+            "CASO_A",
+            "CASO_B"
+          ],
+          "title": "Caso",
+          "type": "string"
+        },
+        "fecha_quiebre": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Fecha Quiebre"
+        },
+        "naturaleza_quiebre": {
+          "anyOf": [
+            {
+              "$ref": "#/esquemas/NaturalezaQuiebre"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "fuente_mascara": {
+          "enum": [
+            "GMW",
+            "ESPECTRAL",
+            "ESPECTRAL_LITERATURA"
+          ],
+          "title": "Fuente Mascara",
+          "type": "string"
+        },
+        "advertencias": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Advertencias",
+          "type": "array"
+        },
+        "estadisticos_tendencia": {
+          "$ref": "#/esquemas/EstadisticosTendencia"
+        },
+        "mascaras_espaciales": {
+          "$ref": "#/esquemas/MascarasEspaciales"
+        },
+        "umbrales_aplicados": {
+          "additionalProperties": true,
+          "title": "Umbrales Aplicados",
+          "type": "object"
+        },
+        "resumen_eventos": {
+          "$ref": "#/esquemas/ResumenEventos"
+        },
+        "comparativa_recurrencia_top3": {
+          "items": {
+            "$ref": "#/esquemas/GrupoRecurrencia"
+          },
+          "title": "Comparativa Recurrencia Top3",
+          "type": "array"
+        },
+        "episodios_evaluados": {
+          "items": {
+            "$ref": "#/esquemas/Episodio"
+          },
+          "title": "Episodios Evaluados",
+          "type": "array"
+        },
+        "timeline_mensual": {
+          "items": {
+            "$ref": "#/esquemas/PuntoTimeline"
+          },
+          "title": "Timeline Mensual",
+          "type": "array"
+        }
+      },
+      "required": [
+        "version_pipeline",
+        "referencias",
+        "extension_gmw_anual",
+        "ingesta_climatica",
+        "ingesta_satelital",
+        "status",
+        "caso",
+        "fecha_quiebre",
+        "naturaleza_quiebre",
+        "fuente_mascara",
+        "advertencias",
+        "estadisticos_tendencia",
+        "mascaras_espaciales",
+        "umbrales_aplicados",
+        "resumen_eventos",
+        "comparativa_recurrencia_top3",
+        "episodios_evaluados",
+        "timeline_mensual"
+      ],
+      "title": "ResultadoCompletado",
+      "type": "object"
+    },
+    "ResultadoRechazado": {
+      "additionalProperties": false,
+      "description": "Caso C: se CONFIRMÓ que el polígono no contiene manglar.",
+      "properties": {
+        "version_pipeline": {
+          "title": "Version Pipeline",
+          "type": "string"
+        },
+        "referencias": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Referencias",
+          "type": "object"
+        },
+        "extension_gmw_anual": {
+          "items": {
+            "$ref": "#/esquemas/ExtensionAnio"
+          },
+          "title": "Extension Gmw Anual",
+          "type": "array"
+        },
+        "ingesta_climatica": {
+          "additionalProperties": true,
+          "title": "Ingesta Climatica",
+          "type": "object"
+        },
+        "ingesta_satelital": {
+          "additionalProperties": true,
+          "title": "Ingesta Satelital",
+          "type": "object"
+        },
+        "status": {
+          "const": "REJECTED_CONTROLLED",
+          "title": "Status",
+          "type": "string"
+        },
+        "caso": {
+          "const": "CASO_C",
+          "title": "Caso",
+          "type": "string"
+        },
+        "motivo_codigo": {
+          "const": "SIN_MANGLAR",
+          "title": "Motivo Codigo",
+          "type": "string"
+        },
+        "motivo_rechazo": {
+          "title": "Motivo Rechazo",
+          "type": "string"
+        },
+        "metricas_admisibilidad": {
+          "additionalProperties": true,
+          "title": "Metricas Admisibilidad",
+          "type": "object"
+        },
+        "fuente_mascara": {
+          "enum": [
+            "GMW",
+            "ESPECTRAL",
+            "ESPECTRAL_LITERATURA"
+          ],
+          "title": "Fuente Mascara",
+          "type": "string"
+        },
+        "advertencias": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Advertencias",
+          "type": "array"
+        }
+      },
+      "required": [
+        "version_pipeline",
+        "referencias",
+        "extension_gmw_anual",
+        "ingesta_climatica",
+        "ingesta_satelital",
+        "status",
+        "caso",
+        "motivo_codigo",
+        "motivo_rechazo",
+        "metricas_admisibilidad",
+        "fuente_mascara",
+        "advertencias"
+      ],
+      "title": "ResultadoRechazado",
+      "type": "object"
+    },
+    "ResultadoInsuficiente": {
+      "additionalProperties": false,
+      "description": "Faltan observaciones para decidir (NO es Caso C).",
+      "properties": {
+        "version_pipeline": {
+          "title": "Version Pipeline",
+          "type": "string"
+        },
+        "referencias": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Referencias",
+          "type": "object"
+        },
+        "extension_gmw_anual": {
+          "items": {
+            "$ref": "#/esquemas/ExtensionAnio"
+          },
+          "title": "Extension Gmw Anual",
+          "type": "array"
+        },
+        "ingesta_climatica": {
+          "additionalProperties": true,
+          "title": "Ingesta Climatica",
+          "type": "object"
+        },
+        "ingesta_satelital": {
+          "additionalProperties": true,
+          "title": "Ingesta Satelital",
+          "type": "object"
+        },
+        "status": {
+          "const": "INSUFFICIENT_DATA",
+          "title": "Status",
+          "type": "string"
+        },
+        "caso": {
+          "title": "Caso",
+          "type": "null"
+        },
+        "motivo_codigo": {
+          "const": "DATOS_INSUFICIENTES",
+          "title": "Motivo Codigo",
+          "type": "string"
+        },
+        "motivo": {
+          "title": "Motivo",
+          "type": "string"
+        },
+        "sugerencia": {
+          "title": "Sugerencia",
+          "type": "string"
+        }
+      },
+      "required": [
+        "version_pipeline",
+        "referencias",
+        "extension_gmw_anual",
+        "ingesta_climatica",
+        "ingesta_satelital",
+        "status",
+        "caso",
+        "motivo_codigo",
+        "motivo",
+        "sugerencia"
+      ],
+      "title": "ResultadoInsuficiente",
+      "type": "object"
+    },
+    "Progreso": {
+      "additionalProperties": false,
+      "properties": {
+        "porcentaje": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Porcentaje",
+          "type": "integer"
+        },
+        "etapa": {
+          "title": "Etapa",
+          "type": "string"
+        }
+      },
+      "required": [
+        "porcentaje",
+        "etapa"
+      ],
+      "title": "Progreso",
+      "type": "object"
+    },
+    "ErrorDetalle": {
+      "additionalProperties": false,
+      "properties": {
+        "codigo": {
+          "title": "Codigo",
+          "type": "string"
+        },
+        "mensaje": {
+          "title": "Mensaje",
+          "type": "string"
+        },
+        "detalles": {
+          "items": {},
+          "title": "Detalles",
+          "type": "array"
+        }
+      },
+      "required": [
+        "codigo",
+        "mensaje"
+      ],
+      "title": "ErrorDetalle",
+      "type": "object"
+    },
+    "ParametrosEjecutados": {
+      "additionalProperties": false,
+      "description": "Lo que realmente se envió al pipeline (fechas normalizadas, bbox usado).",
+      "properties": {
+        "bbox": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Bbox",
+          "type": "array"
+        },
+        "start_date": {
+          "title": "Start Date",
+          "type": "string"
+        },
+        "end_date": {
+          "title": "End Date",
+          "type": "string"
+        },
+        "area_ha": {
+          "title": "Area Ha",
+          "type": "number"
+        }
+      },
+      "required": [
+        "bbox",
+        "start_date",
+        "end_date",
+        "area_ha"
+      ],
+      "title": "ParametrosEjecutados",
+      "type": "object"
+    },
+    "Consulta": {
+      "additionalProperties": false,
+      "properties": {
+        "version_contrato": {
+          "default": "2.1.0",
+          "title": "Version Contrato",
+          "type": "string"
+        },
+        "id_consulta": {
+          "title": "Id Consulta",
+          "type": "string"
+        },
+        "nombre": {
+          "title": "Nombre",
+          "type": "string"
+        },
+        "estado": {
+          "enum": [
+            "en_cola",
+            "en_proceso",
+            "completada",
+            "error"
+          ],
+          "title": "Estado",
+          "type": "string"
+        },
+        "progreso": {
+          "$ref": "#/esquemas/Progreso"
+        },
+        "origen": {
+          "enum": [
+            "pipeline",
+            "piloto"
+          ],
+          "title": "Origen",
+          "type": "string"
+        },
+        "reutilizada": {
+          "default": false,
+          "title": "Reutilizada",
+          "type": "boolean"
+        },
+        "creada_en": {
+          "title": "Creada En",
+          "type": "string"
+        },
+        "actualizada_en": {
+          "title": "Actualizada En",
+          "type": "string"
+        },
+        "parametros": {
+          "$ref": "#/esquemas/SolicitudConsulta"
+        },
+        "ejecucion": {
+          "anyOf": [
+            {
+              "$ref": "#/esquemas/ParametrosEjecutados"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "advertencias": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Advertencias",
+          "type": "array"
+        },
+        "resultado": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "COMPLETED": "#/esquemas/ResultadoCompletado",
+                  "INSUFFICIENT_DATA": "#/esquemas/ResultadoInsuficiente",
+                  "REJECTED_CONTROLLED": "#/esquemas/ResultadoRechazado"
+                },
+                "propertyName": "status"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/esquemas/ResultadoCompletado"
+                },
+                {
+                  "$ref": "#/esquemas/ResultadoRechazado"
+                },
+                {
+                  "$ref": "#/esquemas/ResultadoInsuficiente"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Resultado"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "$ref": "#/esquemas/ErrorDetalle"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "id_consulta",
+        "nombre",
+        "estado",
+        "progreso",
+        "origen",
+        "creada_en",
+        "actualizada_en",
+        "parametros"
+      ],
+      "title": "Consulta",
+      "type": "object"
+    },
+    "ResumenConsulta": {
+      "additionalProperties": false,
+      "properties": {
+        "id_consulta": {
+          "title": "Id Consulta",
+          "type": "string"
+        },
+        "nombre": {
+          "title": "Nombre",
+          "type": "string"
+        },
+        "estado": {
+          "enum": [
+            "en_cola",
+            "en_proceso",
+            "completada",
+            "error"
+          ],
+          "title": "Estado",
+          "type": "string"
+        },
+        "status": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Status"
+        },
+        "caso": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Caso"
+        },
+        "fecha_inicio": {
+          "title": "Fecha Inicio",
+          "type": "string"
+        },
+        "fecha_fin": {
+          "title": "Fecha Fin",
+          "type": "string"
+        },
+        "creada_en": {
+          "title": "Creada En",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id_consulta",
+        "nombre",
+        "estado",
+        "fecha_inicio",
+        "fecha_fin",
+        "creada_en"
+      ],
+      "title": "ResumenConsulta",
+      "type": "object"
+    },
+    "Historial": {
+      "additionalProperties": false,
+      "properties": {
+        "total": {
+          "title": "Total",
+          "type": "integer"
+        },
+        "consultas": {
+          "items": {
+            "$ref": "#/esquemas/ResumenConsulta"
+          },
+          "title": "Consultas",
+          "type": "array"
+        }
+      },
+      "required": [
+        "total",
+        "consultas"
+      ],
+      "title": "Historial",
+      "type": "object"
+    },
+    "Piloto": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "nombre": {
+          "title": "Nombre",
+          "type": "string"
+        },
+        "descripcion": {
+          "title": "Descripcion",
+          "type": "string"
+        },
+        "caso": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Caso"
+        },
+        "status": {
+          "title": "Status",
+          "type": "string"
+        },
+        "parametros": {
+          "$ref": "#/esquemas/SolicitudConsulta"
+        }
+      },
+      "required": [
+        "id",
+        "nombre",
+        "descripcion",
+        "caso",
+        "status",
+        "parametros"
+      ],
+      "title": "Piloto",
+      "type": "object"
+    },
+    "ListaPilotos": {
+      "additionalProperties": false,
+      "properties": {
+        "pilotos": {
+          "items": {
+            "$ref": "#/esquemas/Piloto"
+          },
+          "title": "Pilotos",
+          "type": "array"
+        }
+      },
+      "required": [
+        "pilotos"
+      ],
+      "title": "ListaPilotos",
+      "type": "object"
+    },
+    "Eliminacion": {
+      "additionalProperties": false,
+      "properties": {
+        "eliminada": {
+          "title": "Eliminada",
+          "type": "boolean"
+        },
+        "id_consulta": {
+          "title": "Id Consulta",
+          "type": "string"
+        }
+      },
+      "required": [
+        "eliminada",
+        "id_consulta"
+      ],
+      "title": "Eliminacion",
+      "type": "object"
+    },
+    "Salud": {
+      "additionalProperties": false,
+      "properties": {
+        "estado": {
+          "const": "ok",
+          "title": "Estado",
+          "type": "string"
+        },
+        "version_app": {
+          "title": "Version App",
+          "type": "string"
+        },
+        "version_contrato": {
+          "title": "Version Contrato",
+          "type": "string"
+        },
+        "version_pipeline": {
+          "title": "Version Pipeline",
+          "type": "string"
+        },
+        "gmw_configurado": {
+          "title": "Gmw Configurado",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "estado",
+        "version_app",
+        "version_contrato",
+        "version_pipeline",
+        "gmw_configurado"
+      ],
+      "title": "Salud",
+      "type": "object"
+    },
+    "EstadoConector": {
+      "additionalProperties": false,
+      "properties": {
+        "ok": {
+          "title": "Ok",
+          "type": "boolean"
+        },
+        "latencia_ms": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Latencia Ms"
+        },
+        "detalle": {
+          "title": "Detalle",
+          "type": "string"
+        }
+      },
+      "required": [
+        "ok",
+        "detalle"
+      ],
+      "title": "EstadoConector",
+      "type": "object"
+    },
+    "DiagnosticoConectores": {
+      "additionalProperties": false,
+      "properties": {
+        "nasa_power": {
+          "$ref": "#/esquemas/EstadoConector"
+        },
+        "landsat_stac": {
+          "$ref": "#/esquemas/EstadoConector"
+        },
+        "global_mangrove_watch": {
+          "$ref": "#/esquemas/EstadoConector"
+        }
+      },
+      "required": [
+        "nasa_power",
+        "landsat_stac",
+        "global_mangrove_watch"
+      ],
+      "title": "DiagnosticoConectores",
+      "type": "object"
+    },
+    "RespuestaError": {
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "$ref": "#/esquemas/ErrorDetalle"
+        }
+      },
+      "required": [
+        "error"
+      ],
+      "title": "RespuestaError",
+      "type": "object"
+    },
+    "ResultadoMango": {
+      "discriminator": {
+        "mapping": {
+          "COMPLETED": "#/esquemas/ResultadoCompletado",
+          "INSUFFICIENT_DATA": "#/esquemas/ResultadoInsuficiente",
+          "REJECTED_CONTROLLED": "#/esquemas/ResultadoRechazado"
+        },
+        "propertyName": "status"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/esquemas/ResultadoCompletado"
+        },
+        {
+          "$ref": "#/esquemas/ResultadoRechazado"
+        },
+        {
+          "$ref": "#/esquemas/ResultadoInsuficiente"
+        }
+      ]
+    }
+  },
+  "ejemplos": {
+    "entrada_consulta": {
+      "bbox": [
+        -96.0897,
+        19.0554,
+        -96.0787,
+        19.0654
+      ],
+      "fecha_inicio": "2005-01",
+      "fecha_fin": "2024-12",
+      "nombre": "Marina Punta Tiburón"
+    },
+    "consulta_en_proceso": {
+      "version_contrato": "2.1.0",
+      "id_consulta": "c_20261115120000_proces",
+      "nombre": "Marina Punta Tiburón",
+      "estado": "en_proceso",
+      "progreso": {
+        "porcentaje": 47,
+        "etapa": "Procesando escenas Landsat 104/248 (61 limpias)"
+      },
+      "origen": "pipeline",
+      "creada_en": "2026-11-15T12:00:00+00:00",
+      "actualizada_en": "2026-11-15T12:04:10+00:00",
+      "parametros": {
+        "bbox": [
+          -96.0897,
+          19.0554,
+          -96.0787,
+          19.0654
+        ],
+        "poligono": null,
+        "fecha_inicio": "2005-01",
+        "fecha_fin": "2024-12",
+        "nombre": "Marina Punta Tiburón"
+      },
+      "ejecucion": {
+        "bbox": [
+          -96.0897,
+          19.0554,
+          -96.0787,
+          19.0654
+        ],
+        "start_date": "2005-01-01",
+        "end_date": "2024-12-31",
+        "area_ha": 128.21
+      },
+      "advertencias": [],
+      "resultado": null,
+      "error": null
+    },
+    "error_area_excedida": {
+      "error": {
+        "codigo": "AREA_EXCEDIDA",
+        "mensaje": "El área es de 5,820.3 km² y el máximo es 25 km². Dibuja una zona más pequeña.",
+        "detalles": [
+          {
+            "area_km2": 5820.3,
+            "maximo_km2": 25.0
+          }
+        ]
+      }
+    },
+    "error_rango_insuficiente": {
+      "error": {
+        "codigo": "RANGO_INSUFICIENTE",
+        "mensaje": "El rango es de 2 meses; esta instalación pide al menos 3 (MESES_MINIMOS en backend/.env).",
+        "detalles": [
+          {
+            "meses": 2,
+            "minimo": 3
+          }
+        ]
+      }
+    },
+    "resultados_completos": {
+      "consulta_caso_A": "contrato/ejemplos/consulta_caso_A.json",
+      "consulta_caso_B": "contrato/ejemplos/consulta_caso_B.json",
+      "consulta_caso_C": "contrato/ejemplos/consulta_caso_C.json",
+      "consulta_datos_insuficientes": "contrato/ejemplos/consulta_datos_insuficientes.json"
+    }
+  }
+}

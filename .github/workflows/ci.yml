@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths: ["backend/**", "frontend/**", ".github/workflows/ci.yml"]
+  pull_request:
+    paths: ["backend/**", "frontend/**", ".github/workflows/ci.yml"]
+
+jobs:
+  pruebas:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Instalar dependencias (versiones exactas de uv.lock)
+        run: uv sync --python 3.12 --locked
+
+      - name: Linter
+        run: uv run ruff check .
+
+      - name: Pruebas
+        run: uv run pytest -q
+
+      - name: El contrato JSON está sincronizado con app/contrato.py
+        run: |
+          uv run python scripts/exportar_contrato.py
+          git diff --exit-code -- api_contract.json \
+            || (echo "::error::api_contract.json desactualizado: corre 'python scripts/exportar_contrato.py' y sube los cambios" && exit 1)
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependencias (versiones exactas de package-lock.json)
+        run: npm ci --no-audit --no-fund
+
+      - name: El frontend compila
+        run: npm run build

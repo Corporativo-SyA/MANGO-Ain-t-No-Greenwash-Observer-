@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Secretos y configuración local
+.env
+.env.*
+!.env.ejemplo
+
+# Frontend: node_modules no se sube; frontend/dist SÍ se sube (la app corre sin Node)
+node_modules/
+
+# Datos pesados y libretas (regla del equipo)
+*.tif
+*.tiff
+*.ipynb
+salidas_locales/
+salidas_regresion/
+
+# Sistema operativo y editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

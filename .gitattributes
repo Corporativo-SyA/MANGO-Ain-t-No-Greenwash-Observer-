@@ -1,0 +1,12 @@
+# Normaliza finales de línea en el repositorio
+* text=auto
+
+# Los .bat necesitan CRLF en Windows y los .sh necesitan LF en Mac/Linux
+*.bat text eol=crlf
+*.sh  text eol=lf
+
+# Archivos generados: GitHub los colapsa en los diffs
+backend/uv.lock linguist-generated=true
+backend/api_contract.json linguist-generated=true
+frontend/package-lock.json linguist-generated=true
+frontend/dist/** linguist-generated=true -diff
